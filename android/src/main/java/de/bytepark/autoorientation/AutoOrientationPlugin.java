@@ -4,6 +4,11 @@ import android.app.Activity;
 import android.content.pm.ActivityInfo;
 import android.os.Build;
 
+import androidx.annotation.NonNull;
+
+import io.flutter.embedding.engine.plugins.FlutterPlugin;
+import io.flutter.embedding.engine.plugins.activity.ActivityAware;
+import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding;
 import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler;
@@ -11,17 +16,33 @@ import io.flutter.plugin.common.MethodChannel.Result;
 import io.flutter.plugin.common.PluginRegistry.Registrar;
 
 /** AutoOrientationPlugin */
-public class AutoOrientationPlugin implements MethodCallHandler {
-  Activity activity;
+public class AutoOrientationPlugin implements FlutterPlugin, MethodCallHandler, ActivityAware {
+  private Activity activity;
+  private MethodChannel channel;
 
   /** Plugin registration. */
+  @SuppressWarnings("deprecation")
   public static void registerWith(Registrar registrar) {
     final MethodChannel channel = new MethodChannel(registrar.messenger(), "auto_orientation");
     channel.setMethodCallHandler(new AutoOrientationPlugin(registrar.activity()));
   }
 
+  public AutoOrientationPlugin() {}
+
   private AutoOrientationPlugin(Activity activity) {
     this.activity = activity;
+  }
+
+  @Override
+  public void onAttachedToEngine(@NonNull FlutterPluginBinding binding) {
+    channel = new MethodChannel(binding.getBinaryMessenger(), "auto_orientation");
+    channel.setMethodCallHandler(this);
+  }
+
+  @Override
+  public void onDetachedFromEngine(@NonNull FlutterPluginBinding binding) {
+    channel.setMethodCallHandler(null);
+    channel = null;
   }
 
   @Override
@@ -83,5 +104,26 @@ public class AutoOrientationPlugin implements MethodCallHandler {
         break;
     }
     result.success(null);
+  }
+
+  @Override
+  public void onAttachedToActivity(@NonNull ActivityPluginBinding activityPluginBinding) {
+    this.activity = activityPluginBinding.getActivity();
+  }
+
+  @Override
+  public void onDetachedFromActivityForConfigChanges() {
+    this.activity = null;
+
+  }
+
+  @Override
+  public void onReattachedToActivityForConfigChanges(@NonNull ActivityPluginBinding activityPluginBinding) {
+    this.activity = activityPluginBinding.getActivity();
+  }
+
+  @Override
+  public void onDetachedFromActivity() {
+    this.activity = null;
   }
 }
